@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cari Perbedaannya! — Taman Senja, Pasar Malam &amp; Pantai Pagi</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #171226;
+    color: #f5f0e6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header { text-align: center; padding: 10px 12px 4px; }
+  header h1 { margin: 0; font-size: 30px; letter-spacing: 1px; color: #ffd93b; }
+  header p { margin: 4px 0 0; color: #c9b8e8; font-size: 14px; }
+  #hud {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    justify-content: center; margin: 8px 0 4px; font-size: 15px;
+  }
+  .pill {
+    background: #2a2140; border: 1px solid #4a3a6e; border-radius: 999px;
+    padding: 6px 14px; font-weight: 600; white-space: nowrap;
+  }
+  #hud-remaining { background: #14532d; border-color: #22c55e; color: #bbf7d0; }
+  #hud-combo { background: #7c2d12; border-color: #f97316; color: #fed7aa; }
+  #hud-combo:empty { display: none; }
+  #timer-wrap {
+    width: 180px; height: 12px; background: #2a2140; border-radius: 999px;
+    overflow: hidden; border: 1px solid #4a3a6e;
+  }
+  #hud-timer-fill { height: 100%; width: 100%; background: #22c55e; transition: width .3s linear; }
+  #hud-timer-fill.low { background: #ef4444; }
+  #panel-labels {
+    display: flex; justify-content: space-between; width: 1160px; max-width: 96vw;
+    font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #c9b8e8;
+    margin-top: 6px;
+  }
+  #stage { position: relative; width: 1160px; max-width: 96vw; }
+  #game-canvas {
+    width: 1160px; max-width: 96vw; height: auto; display: block;
+    border: 3px solid #4a3a6e; border-radius: 12px; background: #0b1026;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+  #toast {
+    position: absolute; left: 50%; top: 12px; transform: translateX(-50%) translateY(-8px);
+    background: rgba(20, 83, 45, .95); color: #dcfce7; padding: 8px 18px;
+    border-radius: 999px; font-weight: 600; font-size: 15px; opacity: 0;
+    pointer-events: none; transition: opacity .2s, transform .2s; white-space: nowrap;
+    z-index: 5;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    background: rgba(12, 8, 26, .82); border-radius: 12px; z-index: 10; padding: 20px;
+  }
+  #overlay.hidden { display: none; }
+  #overlay-title { font-size: 34px; color: #ffd93b; margin: 0 0 10px; }
+  #overlay-body { font-size: 17px; line-height: 1.6; color: #f5f0e6; max-width: 560px; }
+  #overlay-button, .btn {
+    margin-top: 16px; font-size: 18px; font-weight: 700; cursor: pointer;
+    background: #ffd93b; color: #171226; border: none; border-radius: 999px;
+    padding: 12px 30px;
+  }
+  #overlay-button:hover, .btn:hover { background: #ffe97a; }
+  .btn.secondary { background: #2a2140; color: #f5f0e6; border: 1px solid #4a3a6e; }
+  .btn.secondary:hover { background: #3a2d5c; }
+  #controls { display: flex; gap: 10px; margin: 12px 0 4px; }
+  #start-button { display: none; }
+  #level-hint { color: #c9b8e8; font-size: 14px; margin: 4px 0 12px; text-align: center; max-width: 900px; }
+  footer { color: #8d7fb8; font-size: 12px; padding-bottom: 14px; text-align: center; }
+  kbd {
+    background: #2a2140; border: 1px solid #4a3a6e; border-radius: 4px;
+    padding: 1px 6px; font-family: inherit;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔍 Cari Perbedaannya!</h1>
+  <p>Tiga dunia original yang digambar prosedural — taman senja, pasar malam, dan pantai pagi.</p>
+</header>
+
+<div id="hud">
+  <span class="pill" id="hud-level">Level 1 — Taman Senja</span>
+  <span class="pill" id="hud-remaining">Sisa 7 dari 7</span>
+  <span class="pill" id="hud-timer">2:30</span>
+  <span id="timer-wrap"><span id="hud-timer-fill"></span></span>
+  <span class="pill" id="hud-score">Skor 0</span>
+  <span class="pill" id="hud-hints">Hint 3</span>
+  <span class="pill" id="hud-combo"></span>
+</div>
+
+<div id="panel-labels"><span>◀ GAMBAR KIRI</span><span>GAMBAR KANAN — ADA 7 PERBEDAAN ▶</span></div>
+
+<div id="stage">
+  <canvas id="game-canvas" width="1160" height="480"></canvas>
+  <div id="toast"></div>
+  <div id="overlay" class="hidden">
+    <h2 id="overlay-title"></h2>
+    <div id="overlay-body"></div>
+    <button id="overlay-button" type="button"></button>
+  </div>
+</div>
+
+<div id="controls">
+  <button class="btn" id="start-button" type="button">▶ Mulai Main</button>
+  <button class="btn secondary" id="hint-button" type="button">💡 Hint (H)</button>
+  <button class="btn secondary" id="mute-button" type="button">Suara: Hidup</button>
+</div>
+
+<p id="level-hint"></p>
+
+<footer>
+  Cara main: klik perbedaan di gambar kiri atau kanan • Keyboard: <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> gerakkan bidikan,
+  <kbd>Tab</kbd> ganti panel, <kbd>Enter</kbd> klik, <kbd>H</kbd> hint, <kbd>M</kbd> suara, <kbd>R</kbd> ulangi level •
+  7 perbedaan per level • 3 level • semua gambar &amp; suara dibuat oleh kode game ini, tanpa unduhan apa pun.
+</footer>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
